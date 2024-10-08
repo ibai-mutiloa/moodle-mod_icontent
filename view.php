@@ -23,6 +23,7 @@
  */
 
 use mod_icontent\local\icontent_info;
+use core_tag_tag;
 
 require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(__FILE__).'/locallib.php');
@@ -32,19 +33,33 @@ require_once("$CFG->libdir/resourcelib.php"); // Apagar - Switch off?
 $id = optional_param('id', 0, PARAM_INT); // Course_module ID.
 $n  = optional_param('n', 0, PARAM_INT); // Icontent instance ID.
 $edit = optional_param('edit', -1, PARAM_BOOL); // Edit mode.
-$pageid = optional_param('pageid', 0, PARAM_INT); // Chapter ID.
+$pageid = optional_param('pageid', null, PARAM_INT); // Chapter ID.
 
+// 20241008 Added check for $pageid to detect coming here from a clicks via tags block.
+if ($pageid) {
+    $page = $DB->get_record('icontent_pages', ['id' => $pageid]);
+    $cm = get_coursemodule_from_id('icontent', $page->cmid, 0, false, MUST_EXIST);
+    $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
+    $icontent = $DB->get_record('icontent', ['id' => $cm->instance], '*', MUST_EXIST);
+}
 if ($id) {
     $cm = get_coursemodule_from_id('icontent', $id, 0, false, MUST_EXIST);
     $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
     $icontent = $DB->get_record('icontent', ['id' => $cm->instance], '*', MUST_EXIST);
 } else if ($n) {
-    $icontent = $DB->get_record('icontent', ['id' => $n], '*', MUST_EXIST);
-    $course = $DB->get_record('course', ['id' => $icontent->course], '*', MUST_EXIST);
     $cm = get_coursemodule_from_instance('icontent', $icontent->id, $course->id, false, MUST_EXIST);
-} else {
-    error('You must specify a course_module ID or an instance ID');
+    $course = $DB->get_record('course', ['id' => $icontent->course], '*', MUST_EXIST);
+    $icontent = $DB->get_record('icontent', ['id' => $n], '*', MUST_EXIST);
 }
+
+if (!$cm) {
+    throw new moodle_exception(get_string('incorrectmodule', 'icontent'));
+}
+
+if (!$course) {
+    throw new moodle_exception(get_string('incorrectcourseid', 'icontent'));
+}
+
 // Check login access.
 require_login($course, true, $cm);
 $context = context_module::instance($cm->id);
@@ -78,9 +93,7 @@ if ($allowedit && !$pages) {
 // Print the page header.
 $PAGE->set_url('/mod/icontent/view.php', ['id' => $cm->id]);
 $PAGE->force_settings_menu();
-//$PAGE->set_title(format_string($icontent->name));
 $PAGE->set_title($icontent->name);
-//$PAGE->set_title($icontent->instance->name);
 $PAGE->set_heading(format_string($course->fullname));
 // Get renderer.
 $renderer = $PAGE->get_renderer('mod_icontent');
@@ -126,71 +139,27 @@ if (($icontent->intro) && ($CFG->branch < 400)) {
     echo $output->introduction($icontent, $cm); // Output introduction in renderer.php.
 }
 
-
-//echo '/////////////////////////////////////////testing 0////////////////////////////////////////';
 // 20240828 Check to see if this icontent is open.
 if ($timenow > $timestart) {
     // This echo gets render before the top of the slide. It prints on every slide.
 
     if ($timenow < $timefinish) {
-
         // Decide whether or not to show upper navigation buttons.
-        if (count($pages) > 5) {
+        if (count($pages) > 10) {
             echo icontent_simple_paging_button_bar($pages, $cm->id, $startwithpage);
         } else {
             echo icontent_full_paging_button_bar($pages, $cm->id, $startwithpage);
         }
         // Add all the content into a box.
         echo $OUTPUT->box_start('icontent-page', 'idicontentpages');
-
-        //echo '/////////////////////////////////////////testing 0a////////////////////////////////////////';
-        // This echo is under the top of the page/slide previous and next buttons. It only prints for the first slide.
-
         echo $showpage->fullpageicontent;
-
-
-        /////////////////////////////////////////////////////
-        //echo '/////////////////////////////////////////testing 1////////////////////////////////////////';
-        // This echo only shows on slide one when the activity first is loaded.
-        // 20240823 Added tags to each slide.
-        echo $OUTPUT->tag_list(
-            core_tag_tag::get_item_tags(
-               'mod_icontent',
-                'icontent_pages',
-                $pageid
-            ),
-            null,
-            'icontent-tags'
-        );
-        /////////////////////////////////////////////////
-
-
         echo $OUTPUT->box_end();
-
-        // Investigate placing tags display here.
         echo icontent_simple_paging_button_bar($pages, $cm->id, $startwithpage);
     } else {
         // 20240828 added Editing period has ended message.
         echo '<div class="editend"><strong>'.get_string('activityended', 'icontent').': ';
         echo userdate($timefinish).'</strong></div>';
     }
-
-    ///////////////////////////////////////////////////
-    // 20240823 Added tags to each slide.
-    echo $OUTPUT->tag_list(
-        core_tag_tag::get_item_tags(
-            'mod_icontent',
-            'icontent_pages',
-            $pageid
-        ),
-        null,
-        'icontent-tags'
-    );
-    //echo '///////////////////////////////////////testing 2//////////////////////////////////////////////';
-    // This echo shows on EVERY page/slide.
-    ////////////////////////////////////////////////////
-
-
 } else {
     echo '<div class="warning">'.get_string('notopenuntil', 'icontent').': ';
     echo userdate($timestart).'.</div>';
