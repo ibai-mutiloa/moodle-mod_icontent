@@ -56,6 +56,8 @@ $PAGE->set_pagelayout('admin'); // Not sure just what this does.
 
 if ($pageid) {
     $page = $DB->get_record('icontent_pages', ['id' => $pageid, 'icontentid' => $icontent->id], '*', MUST_EXIST);
+    // 20240920 See if there are any tags for this page.
+    $page->tags = core_tag_tag::get_item_tags_array('mod_icontent', 'icontent_pages', $pageid);
 } else {
     $page = new stdClass();
     $page->id = null;
@@ -84,6 +86,15 @@ if ($mform->is_cancelled()) {
     }
 
 } else if ($data = $mform->get_data()) {
+    // 20240920 Added tags to the form.
+    core_tag_tag::set_item_tags(
+        'mod_icontent',
+        'icontent_pages',
+        $pageid,
+        $context,
+        $data->tags,
+    );
+
     // Update.
     if ($data->id) {
         // Store the files.
