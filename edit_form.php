@@ -94,6 +94,20 @@ class icontent_pages_edit_form extends moodleform {
         $mform->setType('pageicontent_editor', PARAM_RAW);
         $mform->addRule('pageicontent_editor', get_string('required'), 'required', null, 'client');
 
+        // 20240920 Added tags to edit_form page.
+        if (core_tag_tag::is_enabled('mod_icontent', 'icontent_pages')) {
+            $mform->addElement('header', 'tagshdr', get_string('tags', 'tag'));
+        }
+        $mform->addElement(
+            'tags',
+            'tags',
+            get_string('tags'),
+            [
+                'itemtype' => 'icontent_pages',
+                'component' => 'mod_icontent',
+            ]
+        );
+
         $mform->addElement('header', 'appearance', get_string('appearance'));
 
         $layouts = [
