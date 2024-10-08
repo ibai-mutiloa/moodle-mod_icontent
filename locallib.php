@@ -415,7 +415,6 @@ function icontent_full_paging_button_bar($pages, $cmid, $startwithpage = 1) {
 function icontent_simple_paging_button_bar($pages, $cmid, $startwithpage = 1, $attrid = 'fgroup_id_buttonar') {
     // Object button.
     $objbutton = new stdClass();
-    //$objbutton->name  = get_string('goback', 'mod_icontent');
     $objbutton->name  = get_string('previous', 'mod_icontent');
     $objbutton->title = get_string('previouspage', 'mod_icontent');
     $objbutton->cmid  = $cmid;
@@ -2110,7 +2109,7 @@ function icontent_make_notesarea($objpage, $icontent) {
             'class' => 'col-2 userpicture',
         ]
     );
-////////////////////////////////////////////////////////////////////////
+
     // Fields. Create text area for notes.
     $textareanote = html_writer::tag('textarea', null,
         [
@@ -2137,7 +2136,7 @@ function icontent_make_notesarea($objpage, $icontent) {
             'data-sesskey' => sesskey(),
         ]
     );
-////////////////////////////////////////////////////////////////////////
+
     // Create text area for questions.
     $textareadoubt = html_writer::tag('textarea', null,
         [
@@ -2161,7 +2160,7 @@ function icontent_make_notesarea($objpage, $icontent) {
             'data-sesskey' => sesskey(),
         ]
     );
-////////////////////////////////////////////////////////////////////////
+
     // Create text area for tags.
     /*
     $textareatag = html_writer::tag('textarea', null,
@@ -2190,14 +2189,12 @@ function icontent_make_notesarea($objpage, $icontent) {
         ]
     );
     */
-////////////////////////////////////////////////////////////////////////
 
     // Data page.
     $datapagenotesnote = icontent_get_pagenotes($objpage->id, $objpage->cmid, 'note'); // Data page notes note.
     $datapagenotesdoubt = icontent_get_pagenotes($objpage->id, $objpage->cmid, 'doubt'); // Data page notes question.
     // Placeholder for tags code.
     // $datapagenotestag = icontent_get_pagenotes($objpage->id, $objpage->cmid, 'doubt'); // Data page notes tag.
-    
     $pagenotesnote = html_writer::div(icontent_make_listnotespage($datapagenotesnote, $icontent, $objpage),
         'pagenotesnote',
         [
@@ -2219,7 +2216,7 @@ function icontent_make_notesarea($objpage, $icontent) {
     );
     $fieldsdoubt = html_writer::tag('div', $textareadoubt.$spandoubttutor.$btnsavedoubt.$pagenotesdoubt,
         [
-            'class' => 'col-10'
+            'class' => 'col-10',
         ]
     );
     // Placeholder for tags code.
@@ -2236,7 +2233,6 @@ function icontent_make_notesarea($objpage, $icontent) {
     $formdoubt = html_writer::tag('div', $picture.$fieldsdoubt, ['class' => 'row fields mt-2']);
     // Placeholder for tags code.
     // $formdoubt = html_writer::tag('div', $picture.$fieldstag, ['class' => 'row fields mt-2']);
-
 
     // TAB NAVS.
     $note = html_writer::tag('li',
@@ -2270,7 +2266,7 @@ function icontent_make_notesarea($objpage, $icontent) {
         ]
     );
     // Placeholder for tags code.
-    /* 
+    /*
     $tag = html_writer::tag('li',
         html_writer::link('#tag', get_string('tag', 'icontent', count($datapagenotestag)),
             [
@@ -2419,7 +2415,7 @@ function icontent_make_listnotespage($pagenotes, $icontent, $page) {
                     'id' => $user->id,
                     'course' => $icontent->course,
                 ]),
-                $user->firstname,
+                $user->firstname.' '.$user->lastname,
                 [
                     'title' => $user->firstname,
                 ]
@@ -2793,7 +2789,9 @@ function icontent_make_cover_page($icontent, $objpage, $context) {
  * @return object $fullpage
  */
 function icontent_get_fullpageicontent($pagenum, $icontent, $context) {
-    global $DB, $CFG;
+    global $DB, $CFG, $OUTPUT;
+    //use core_tag_tag;
+
     // Get page.
     $objpage = $DB->get_record('icontent_pages', ['pagenum' => $pagenum, 'icontentid' => $icontent->id]);
     if (!$objpage) {
@@ -2848,6 +2846,17 @@ function icontent_get_fullpageicontent($pagenum, $icontent, $context) {
     $qtsareas = icontent_make_questionsarea($objpage, $icontent);
     // Form notes.
     $notesarea = icontent_make_notesarea($objpage, $icontent);
+    // 20240920 If tags exist add them to each entry.
+    $tarea = $OUTPUT->tag_list(
+        core_tag_tag::get_item_tags(
+            'mod_icontent',
+            'icontent_pages',
+            $objpage->id,
+        ),
+        null,
+        'icontent-tags'
+    );
+
     // Control button.
     $objpage->previous = icontent_get_prev_pagenum($objpage);
     $objpage->next = icontent_get_next_pagenum($objpage);
@@ -2856,10 +2865,11 @@ function icontent_get_fullpageicontent($pagenum, $icontent, $context) {
         $toolbarpage.
         $title.
         $objpage->pageicontent.
-        $npage.'xxx'.
+        $npage.
         $progbar.
         $qtsareas.
         $notesarea.
+        $tarea.
         $script,
         [
             'class' => 'fulltextpage',
@@ -2872,4 +2882,135 @@ function icontent_get_fullpageicontent($pagenum, $icontent, $context) {
     \mod_icontent\event\page_viewed::create_from_page($icontent, $context, $objpage)->trigger();
     unset($objpage->pageicontent);
     return $objpage;
+}
+
+/**
+ * Returns icontent pages tagged with a specified tag.
+ *
+ * This is a callback used by the tag area mod_icontent/icontent_pages to search for icontent pages
+ * tagged with a specific tag.
+ *
+ * @param core_tag_tag $tag
+ * @param bool $exclusivemode if set to true it means that no other entities tagged with this tag
+ *             are displayed on the page and the per-page limit may be bigger
+ * @param int $fromctx context id where the link was displayed, may be used by callbacks
+ *            to display items in the same context first
+ * @param int $ctx context id where to search for records
+ * @param bool $rec search in subcontexts as well
+ * @param int $page 0-based number of page being displayed
+ * @return \core_tag\output\tagindex
+ */
+function mod_icontent_get_tagged_pages($tag, $exclusivemode = false, $fromctx = 0, $ctx = 0, $rec = 1, $page = 0) {
+    global $OUTPUT;
+    $perpage = $exclusivemode ? 20 : 5;
+
+    // Build the SQL query.
+    $ctxselect = context_helper::get_preload_record_columns_sql('ctx');
+    $query = "SELECT ip.id, ip.title, ip.icontentid,
+                     cm.id AS cmid, c.id AS courseid, c.shortname, c.fullname, $ctxselect
+                FROM {icontent_pages} ip
+                JOIN {icontent} ic ON ip.icontentid = ic.id
+                JOIN {modules} m ON m.name='icontent'
+                JOIN {course_modules} cm ON cm.module = m.id AND cm.instance = ic.id
+                JOIN {tag_instance} tt ON ip.id = tt.itemid
+                JOIN {course} c ON cm.course = c.id
+                JOIN {context} ctx ON ctx.instanceid = cm.id AND ctx.contextlevel = :coursemodulecontextlevel
+               WHERE tt.itemtype = :itemtype AND tt.tagid = :tagid AND tt.component = :component
+                 AND cm.deletioninprogress = 0
+                 AND ip.id %ITEMFILTER% AND c.id %COURSEFILTER%";
+
+    $params = ['itemtype' => 'icontent_pages',
+        'tagid' => $tag->id,
+        'component' => 'mod_icontent',
+        'coursemodulecontextlevel' => CONTEXT_MODULE,
+    ];
+
+    if ($ctx) {
+        $context = $ctx ? context::instance_by_id($ctx) : context_system::instance();
+        $query .= $rec ? ' AND (ctx.id = :contextid OR ctx.path LIKE :path)' : ' AND ctx.id = :contextid';
+        $params['contextid'] = $context->id;
+        $params['path'] = $context->path.'/%';
+    }
+
+    $query .= " ORDER BY ";
+    if ($fromctx) {
+        // In order-clause specify that modules from inside "fromctx" context should be returned first.
+        $fromcontext = context::instance_by_id($fromctx);
+        $query .= ' (CASE WHEN ctx.id = :fromcontextid OR ctx.path LIKE :frompath THEN 0 ELSE 1 END),';
+        $params['fromcontextid'] = $fromcontext->id;
+        $params['frompath'] = $fromcontext->path.'/%';
+    }
+    $query .= ' c.sortorder, cm.id, ip.id';
+
+    $totalpages = $page + 1;
+
+    // Use core_tag_index_builder to build and filter the list of items.
+    $builder = new core_tag_index_builder('mod_icontent', 'icontent_pages', $query, $params, $page * $perpage, $perpage + 1);
+    while ($item = $builder->has_item_that_needs_access_check()) {
+        context_helper::preload_from_record($item);
+        $courseid = $item->courseid;
+        if (!$builder->can_access_course($courseid)) {
+            $builder->set_accessible($item, false);
+            continue;
+        }
+        $modinfo = get_fast_modinfo($builder->get_course($courseid));
+        // Set accessibility of this item and all other items in the same course.
+        $builder->walk(function ($taggeditem) use ($courseid, $modinfo, $builder) {
+            if ($taggeditem->courseid == $courseid) {
+                $accessible = false;
+                if (($cm = $modinfo->get_cm($taggeditem->cmid)) && $cm->uservisible) {
+                    // Not sure if this is needed for iContent.
+                    //$subicontent = (object)array('id' => $taggeditem->subicontentid, 'groupid' => $taggeditem->groupid,
+                    //    'userid' => $taggeditem->userid, 'icontentid' => $taggeditem->icontentid);
+                    //$icontent = (object)array('id' => $taggeditem->icontentid, 'icontentmode' => $taggeditem->icontentmode,
+                    $icontent = (object)['id' => $taggeditem->icontentid, 'course' => $cm->course];
+                    $accessible = icontent_user_can_view($subicontent, $icontent);
+                }
+                $builder->set_accessible($taggeditem, $accessible);
+            }
+        });
+    }
+
+    $items = $builder->get_items();
+    if (count($items) > $perpage) {
+        $totalpages = $page + 2; // We don't need exact page count, just indicate that the next page exists.
+        array_pop($items);
+    }
+
+    // Build the display contents.
+    if ($items) {
+        $tagfeed = new core_tag\output\tagfeed();
+        foreach ($items as $item) {
+            context_helper::preload_from_record($item);
+            $modinfo = get_fast_modinfo($item->courseid);
+            $cm = $modinfo->get_cm($item->cmid);
+            $pageurl = new moodle_url('/mod/icontent/view.php', ['pageid' => $item->id]);
+            $pagename = format_string($item->title, true, ['context' => context_module::instance($item->cmid)]);
+            $pagename = html_writer::link($pageurl, $pagename);
+            $courseurl = course_get_url($item->courseid, $cm->sectionnum);
+            $cmname = html_writer::link($cm->url, $cm->get_formatted_name());
+            $coursename = format_string($item->fullname, true, ['context' => context_course::instance($item->courseid)]);
+            $coursename = html_writer::link($courseurl, $coursename);
+            $icon = html_writer::link($pageurl, html_writer::empty_tag('img', ['src' => $cm->get_icon_url()]));
+            $tagfeed->add($icon, $pagename, $cmname.'<br>'.$coursename);
+        }
+
+        $content = $OUTPUT->render_from_template('core_tag/tagfeed',
+                $tagfeed->export_for_template($OUTPUT));
+
+        // These are only printed when you click on a tag item in a Tag Block.
+        //print_object($item);
+        //print_object($tag);
+        //print_object($content);
+        //print_object($exclusivemode);
+        //print_object($fromctx);
+        //print_object($ctx);
+        //print_object($rec);
+        //print_object($page);
+        //print_object($totalpages);
+        //die;
+
+        return new core_tag\output\tagindex($tag, 'mod_icontent', 'icontent_pages', $content,
+                $exclusivemode, $fromctx, $ctx, $rec, $page, $totalpages);
+    }
 }
