@@ -42,7 +42,7 @@ if ($ADMIN->fulltree) {
     $setting->set_advanced_flag_options(admin_setting_flag::ENABLED, false);
     $setting->set_locked_flag_options(admin_setting_flag::ENABLED, false);
     $settings->add($setting);
-    
+
     // 20231230 Recent activity setting.
     $name = new lang_string('showrecentactivity', 'icontent');
     $description = new lang_string('showrecentactivityconfig', 'icontent');
@@ -58,7 +58,7 @@ if ($ADMIN->fulltree) {
         ['value' => 0,
         'adv' => true, ]
     ));
-    
+
     // Appearance settings.
     $settings->add(new admin_setting_heading('mod_icontent/appearance', get_string('appearance'), ''));
 
