@@ -199,7 +199,7 @@ class icontent_info {
 
     /**
      * Update the calendar entries for this icontent activity.
-     * 
+     *
      * 20240829 Added calendar function.
      *
      * @param stdClass $icontent the row from the database table icontent.
@@ -218,7 +218,7 @@ class icontent_info {
                 $icontent->coursemodule = $cm->id;
             }
 
-            // icontent start calendar events.
+            // The iContent start calendar events.
             $event = new stdClass();
             $event->eventtype = ICONTENT_EVENT_TYPE_OPEN;
             // The ICONTENT_EVENT_TYPE_OPEN event should only be an action event if no close time is specified.
@@ -263,7 +263,7 @@ class icontent_info {
                 }
             }
 
-            // icontent end calendar events.
+            // The iContent end calendar events.
             $event = new stdClass();
             $event->type = CALENDAR_EVENT_TYPE_ACTION;
             $event->eventtype = ICONTENT_EVENT_TYPE_CLOSE;
