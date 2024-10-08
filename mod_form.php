@@ -73,6 +73,17 @@ class mod_icontent_mod_form extends moodleform_mod {
         $mform->setType('copyright', PARAM_RAW);
         $mform->addHelpButton('copyright', 'copyright', 'icontent');
 
+        // 20240920 Added tags to mod_form page.
+        $mform->addElement(
+            'tags',
+            'tags',
+            get_string('tags'),
+            [
+                'itemtype' => 'icontent_pages',
+                'component' => 'mod_icontent',
+            ]
+        );
+
         // Set up options for the filemanager setting.
         $filemanageroptions = [];
                 $filemanageroptions['subdirs'] = 0;
@@ -85,7 +96,6 @@ class mod_icontent_mod_form extends moodleform_mod {
         $mform->addElement('filemanager', 'bgimage', get_string('bgimage', 'icontent'), null, $filemanageroptions);
         $mform->setType('bgimage', PARAM_INT);
         $mform->addHelpButton('bgimage', 'bgimagehelp', 'icontent');
-//////////
 
         // Content Pages activity setup, Availability settings.
         $mform->addElement('header', 'availabilityhdr', get_string('availability'));
@@ -113,8 +123,6 @@ class mod_icontent_mod_form extends moodleform_mod {
         $mform->disabledIf('password', 'usepassword', 'eq', 0);
         $mform->disabledIf('passwordunmask', 'usepassword', 'eq', 0);
 
-
-/////////////
         // Appearance.
         $mform->addElement('header', 'appearancehdr', get_string('appearance'));
 
