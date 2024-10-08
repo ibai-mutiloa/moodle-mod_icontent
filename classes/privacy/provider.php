@@ -113,15 +113,18 @@ class provider implements \core_privacy\local\metadata\provider,
             'userid' => $userid,
         ];
 
-        // User-created icontent entries.
+        // User-created icontent note and question entries.
         $sql = '
             SELECT c.id
               FROM {context} c
-              JOIN {course_modules} cm ON cm.id = c.instanceid
+              JOIN {course_modules} cm
+                ON cm.id = c.instanceid
                AND c.contextlevel = :contextlevel
                AND cm.module = :modid
-              JOIN {icontent} ic ON ic.id = cm.instance
-              JOIN {icontent_pages_notes} icpn ON icpn.icontent = ic.id
+              JOIN {icontent} ic
+                ON ic.id = cm.instance
+              JOIN {icontent_pages_notes} icpn
+                ON icpn.cmid = cm.id
              WHERE icpn.userid = :userid
         ';
 
