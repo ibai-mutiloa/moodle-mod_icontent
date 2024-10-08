@@ -1,6 +1,5 @@
 This files describes API changes and other work in the iContent code.
 === Deferred until fixed. ===
-20231225 iContent_1142 - Need to verify move.php works.
 20240101 iContent_1155 - Might want to see about adding an iContent plugin to Grade Me.
 20240104 iContent_1156 - I am getting, You should really redirect before you start page
     output, when adding questions to a slide.
@@ -21,17 +20,20 @@ This files describes API changes and other work in the iContent code.
 20240718 iContent_1272 - Group mode is on the settings page, but is not used anywhere in the
     code #35.
 20240718 iContent_1273 - Notificactions on Notes and Questions #37.
-20240721 iContent_1278 - Tags can be added to settings, but are NOT seen anywhere in the activity.
-    I see the same thing for other plugins.
+
 20240728 iContent_1285 - iContent - Need to verify that Bookmark code is working correctly.
 20240728 iContent_1287 - Color settings are problematic due to # being required in the settings
     but NOT in mod_form and edit_form.
+20240920 iContent_1321 - I am unable to Like, or Unlike a Note. 
 
+20240922 iContent_1322 - Need to verify code in lib.php function icontent_print_recent_activity. 
 
 === 1.0.7.2 === pending (Build: 2024061600) bumped version 2024061600
 20231223 iContent_1138bt - There does not seem to be a way to get to the index.php page.
     Major work in progress to add more detail to the index.php page and create new
     icontent/classes/local/icontent_info.php file.
+20231225 iContent_1142 - Need to verify move.php works. It does and works as expected.
+    Made change in lines 54-71 to get rid of an empty, if. See tickt for details.
 
 20240205 iContent_1192bt - Need to create a privacy class. 20240209 Created the file.
     Now need to update the code to change all references from diary to icontent. - DONE
@@ -62,6 +64,10 @@ This files describes API changes and other work in the iContent code.
 20240720 iContent_1277bt - iContent - TRUEFALSE questions are not being listed for selection
     on addquestion.php page. I was missing a question mark in line 120, of the $sql
     selection of the icontent_question_options.php page. See ticket for further details.
+    
+20240721 iContent_1278r - Tags can be added to settings, but are NOT seen anywhere in the activity,
+     and not implemented per page. Added needed code using wiki as a guide.
+     
 20240724 iContent_1280bt - Background image upload and use is broken. Line 122 of the
     edit_form.php was causing the problem. Right now commented out and will delete later.
 20240727 iContent_1283bt - Appearance> Page layout collumns2-5, are spelled wrong. Changed
@@ -111,6 +117,11 @@ This files describes API changes and other work in the iContent code.
 
 20240828 iContent_1310 - Need to implement iContent calendar events. Added code to lib.php
     in two calendar functions. Added two new strings, calendarend and calendarstart.
+
+20240830 iContent_1311 - Exception occurred while calling mod_icontent\privacy\provider::get_contexts_for_userid.
+    See tick where I made changes to the SQL in the provider.php file starting at line 117.
+
+
 
 === 1.0.7.1 === 2023122801
 20231220 iContent_1135bt - Cannot add a question to a slide. Made more changes to the
