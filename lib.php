@@ -73,6 +73,8 @@ function icontent_supports($feature) {
             return true;
         case FEATURE_SHOW_DESCRIPTION:
             return true;
+        case FEATURE_MOD_PURPOSE:
+            return MOD_PURPOSE_COLLABORATION;
 
         default:
             return null;
@@ -91,7 +93,6 @@ function icontent_supports($feature) {
  * @param mod_icontent_mod_form $mform The form instance itself (if needed)
  * @return int The id of the newly inserted icontent record
  */
-//function icontent_add_instance(stdClass $icontent, ?mod_icontent_mod_form $mform = null) {
 function icontent_add_instance($icontent) {
     global $DB;
 
@@ -106,7 +107,11 @@ function icontent_add_instance($icontent) {
 
     // 20240828 Added expected completion date.
     if (! empty($icontent->completionexpected)) {
-        \core_completion\api::update_completion_date_event($icontent->coursemodule, 'icontent', $icontent->id, $icontent->completionexpected);
+        \core_completion\api::update_completion_date_event($icontent->coursemodule,
+            'icontent',
+            $icontent->id,
+            $icontent->completionexpected
+        );
     }
 
     icontent_grade_item_update($icontent);
@@ -125,7 +130,6 @@ function icontent_add_instance($icontent) {
  * @param mod_icontent_mod_form $mform The form instance itself (if needed)
  * @return boolean Success/Fail
  */
-//function icontent_update_instance(stdClass $icontent, ?mod_icontent_mod_form $mform = null) {
 function icontent_update_instance($icontent) {
     global $DB;
 
@@ -134,7 +138,6 @@ function icontent_update_instance($icontent) {
 
     // You may have to add extra stuff in here.
 
-    //$result = $DB->update_record('icontent', $icontent);
     $DB->update_record('icontent', $icontent);
 
     // 20240828 Added calendar dates.
@@ -146,7 +149,6 @@ function icontent_update_instance($icontent) {
 
     icontent_grade_item_update($icontent);
 
-    //return $result;
     return true;
 }
 
@@ -253,10 +255,92 @@ function icontent_user_complete($course, $user, $mod, $icontent) {
  */
 function icontent_print_recent_activity($course, $viewfullnames, $timestart) {
     global $CFG, $USER, $DB, $OUTPUT;
-    $dbparams = [$timestart, $course->id, 'icontent'];
 
-    //return false;
-    return true;
+    if (! get_config('icontent', 'showrecentactivity')) {
+        return false;
+    }
+
+    $dbparams = [
+        $timestart,
+        $course->id,
+        'icontent',
+    ];
+
+    $userfieldsapi = \core_user\fields::for_userpic();
+    $namefields = $userfieldsapi->get_sql('u', false, '', 'userid', false)->selects;;
+    // Need to adapt the following to apply to icontent notes and questions submitted.
+    /*
+    if (!$submissions = $DB->get_records_sql("SELECT asb.id, asb.timemodified, cm.id AS cmid, um.id as recordid,
+                                                     $namefields
+                                                FROM {assign_submission} asb
+                                                     JOIN {assign} a      ON a.id = asb.assignment
+                                                     JOIN {course_modules} cm ON cm.instance = a.id
+                                                     JOIN {modules} md        ON md.id = cm.module
+                                                     JOIN {user} u            ON u.id = asb.userid
+                                                LEFT JOIN {assign_user_mapping} um ON um.userid = u.id AND um.assignment = a.id
+                                               WHERE asb.timemodified > ? AND
+                                                     asb.latest = 1 AND
+                                                     a.course = ? AND
+                                                     md.name = ? AND
+                                                     asb.status = ?
+                                            ORDER BY asb.timemodified ASC", $dbparams)) {
+         return false;
+    }
+    */
+    return false;
+    // return true;
+
+    // Might actually be easier to adapt the code for wiki.
+    // Will need sql for notes/questions added to this.
+    // Will probably need sql for notes_like also.
+    // Will possibly need sql for question_attempts shown to teachers if it is an essay question attempt by a student.
+    /*
+    function wiki_print_recent_activity($course, $viewfullnames, $timestart) {
+        global $CFG, $DB, $OUTPUT;
+
+        $sql = "SELECT p.id, p.timemodified, p.subwikiid, sw.wikiid, w.wikimode, sw.userid, sw.groupid
+                FROM {wiki_pages} p
+                    JOIN {wiki_subwikis} sw ON sw.id = p.subwikiid
+                    JOIN {wiki} w ON w.id = sw.wikiid
+                WHERE p.timemodified > ? AND w.course = ?
+                ORDER BY p.timemodified ASC";
+        if (!$pages = $DB->get_records_sql($sql, array($timestart, $course->id))) {
+            return false;
+        }
+        require_once($CFG->dirroot . "/mod/wiki/locallib.php");
+
+        $wikis = array();
+
+        $modinfo = get_fast_modinfo($course);
+
+        $subwikivisible = array();
+        foreach ($pages as $page) {
+            if (!isset($subwikivisible[$page->subwikiid])) {
+                $subwiki = (object)array('id' => $page->subwikiid, 'wikiid' => $page->wikiid,
+                    'groupid' => $page->groupid, 'userid' => $page->userid);
+                $wiki = (object)array('id' => $page->wikiid, 'course' => $course->id, 'wikimode' => $page->wikimode);
+                $subwikivisible[$page->subwikiid] = wiki_user_can_view($subwiki, $wiki);
+            }
+            if ($subwikivisible[$page->subwikiid]) {
+                $wikis[] = $page;
+            }
+        }
+        unset($subwikivisible);
+        unset($pages);
+
+        if (!$wikis) {
+            return false;
+        }
+        echo $OUTPUT->heading(get_string("updatedwikipages", 'wiki') . ':', 6);
+        foreach ($wikis as $wiki) {
+            $cm = $modinfo->instances['wiki'][$wiki->wikiid];
+            $link = $CFG->wwwroot . '/mod/wiki/view.php?pageid=' . $wiki->id;
+            print_recent_activity_note($wiki->timemodified, $wiki, $cm->name, $link, false, $viewfullnames);
+        }
+
+        return true; //  True if anything was printed, otherwise false
+    }
+    */
 }
 
 /**
@@ -569,7 +653,7 @@ function icontent_extend_navigation(navigation_node $navref, stdClass $course, s
  * @param navigation_node $icontentnode
  * @return void
  */
-function icontent_extend_settings_navigation(settings_navigation $settingsnav, navigation_node $icontentnode = null) {
+function icontent_extend_settings_navigation(settings_navigation $settingsnav, $icontentnode = null) {
     global $PAGE, $DB;
     // Get instance object icontent.
     $icontent = $DB->get_record('icontent', ['id' => $PAGE->cm->instance], '*', MUST_EXIST);
@@ -732,6 +816,7 @@ function icontent_ajax_editnote(stdClass $pagenote, stdClass $icontent) {
     }
     return false;
 }
+
 /**
  * Inserts responses of notes in table {icontent_pages_notes}.
  * @param stdClass $pagenote
@@ -788,6 +873,7 @@ function icontent_ajax_replynote(stdClass $pagenote, stdClass $icontent) {
     }
     return $return;
 }
+
 /**
  * Saves attempts to answers to the questions of the current page in table {icontent_question_attempt}.
  * @param string $formdata
@@ -836,4 +922,37 @@ function icontent_ajax_saveattempt($formdata, stdClass $cm, $icontent) {
     $summary->grid = icontent_make_attempt_summary_by_page($pageid, $cm->id);
 
     return $summary;
+}
+
+/**
+ * This function is used by the reset_course_userdata function in moodlelib.
+ * This function will remove all posts from the specified icontent
+ * and clean up any related data.
+ *
+ * @param stdClass $data
+ * @return array
+ */
+function icontent_reset_userdata($data) {
+    global $CFG, $DB;
+    require_once($CFG->dirroot . "/mod/icontent/locallib.php");
+
+    $componentstr = get_string('modulenameplural', 'icontent');
+    $status = [];
+
+    // 20240920 Working on tags stuff based off wiki. Might need reset for notes, note replies, questions, question replies.
+    // Will need to research the db tables.
+
+    if (!empty($data->reset_icontent)) {
+        $instances = $DB->get_records('icontent', ['course' => $data->courseid]);
+        foreach ($instances as $instance) {
+            if (reset_instance($instance->id)) {
+                $status[] = [
+                    'component' => get_string('modulenameplural', 'icontent'),
+                    'item' => get_string('reseticontent', 'icontent').': '.$instance->name,
+                    'error' => false,
+                ];
+            }
+        }
+    }
+    return $status;
 }
