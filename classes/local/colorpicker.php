@@ -57,7 +57,7 @@ class icontent_setting_configcolorpicker extends admin_setting {
      * @param array $previewconfig
      * @param int $usedefaultwhenempty
      */
-    public function __construct($name, $visiblename, $description, $defaultsetting, array $previewconfig = null,
+    public function __construct($name, $visiblename, $description, $defaultsetting, $previewconfig = null,
             $usedefaultwhenempty = true) {
         $this->previewconfig = $previewconfig;
         $this->usedefaultwhenempty = $usedefaultwhenempty;
